@@ -20,6 +20,7 @@
         this.options = options;
         this.timer = null;
         this.animates = false;
+        this.doAnimation = false;
         this.delta = this.$target.width() - this.$element.width();
         this.targetMargin = this.$target.css("margin-left");
     };
@@ -51,20 +52,23 @@
 
         animate: function (delta, direction) {
             var self = this;
-            self.$target.animate(
-                { "margin-left": direction + "=" + delta + "px" },
-                self.options.scrollDuration,
-                self.options.easing,
-                function () {
-                    self.timer = setTimeout(function () { self.animate(delta, self.toggleDirection(direction)); }, self.options.holdDuration);
-                }
-            );
+            if (self.doAnimation) {
+                self.$target.animate(
+                    { "margin-left": direction + "=" + delta + "px" },
+                    self.options.scrollDuration,
+                    self.options.easing,
+                    function () {
+                        self.animates = false;
+                        self.timer = setTimeout(function () { self.animate(delta, self.toggleDirection(direction)); }, self.options.holdDuration);
+                    }
+                );
+            }
         }
 
     };
 
     $.fn.sweetText = function (options) {
-        var get, eventIn, eventOut, start, stop, binder;
+        var get, eventIn, eventOut, start, stop, binder, sweetText;
 
         get = function (e) {
             var sweetText = $(e).data("sweetText");
@@ -75,10 +79,11 @@
             return sweetText;
         };
 
-        start = function () {
-            var sweetText = get(this);
+        start = function (e) {
+            var sweetText = get(e || this);
             clearTimeout(sweetText.timer);
             if (!sweetText.animates) {
+                sweetText.doAnimation = true;
                 sweetText.animate(sweetText.delta, sweetText.getDirection());
             }
         };
@@ -86,8 +91,17 @@
         stop = function () {
             var sweetText = get(this);
             sweetText.animates = false;
+            sweetText.doAnimation = false;
             clearTimeout(sweetText.timer);
         };
+
+        if (typeof options === "string") {
+            sweetText = get(this);
+            if (sweetText) {
+                sweetText[options]();
+            }
+            return this;
+        }
 
         options = $.extend({}, $.fn.sweetText.defaults, options);
 
@@ -95,10 +109,14 @@
             get(this);
         });
 
-        binder = options.live ? "live" : "bind";
-        eventIn = options.trigger === "hover" ? "mouseenter" : "focus";
-        eventOut = options.trigger === "hover" ? "mouseleave" : "blur";
-        this[binder](eventIn, start)[binder](eventOut, stop);
+        if (options.trigger === "always") {
+            start(this);
+        } else if (options.trigger !== "manual") {
+            binder = options.live ? "live" : "bind";
+            eventIn = options.trigger === "hover" ? "mouseenter" : "focus";
+            eventOut = options.trigger === "hover" ? "mouseleave" : "blur";
+            this[binder](eventIn, start)[binder](eventOut, stop);
+        }
 
         return this;
     };
