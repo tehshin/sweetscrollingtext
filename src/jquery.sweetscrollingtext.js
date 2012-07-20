@@ -11,6 +11,12 @@
     var SweetText = function (element, options) {
         this.$element = $(element);
         this.$target = this.$element.find(options.target);
+
+        if (this.$target.css("display") === "block") {
+            this.$target.html("<span>" + this.$target.text() + "</span>");
+            this.$target = this.$target.find("span");
+        }
+
         this.options = options;
         this.timer = null;
         this.animates = false;
@@ -29,6 +35,10 @@
         },
 
         getDirection: function () {
+            if (!this.$target) {
+                return "-";
+            }
+
             var currentMargin = parseInt(this.$target.css("margin-left").replace("px", ""), 10),
                 originalMargin = parseInt(this.targetMargin.replace("px", ""), 10);
 
